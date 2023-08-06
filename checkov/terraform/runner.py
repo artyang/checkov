@@ -25,7 +25,7 @@ from checkov.common.util import data_structures_utils
 from checkov.common.util.consts import RESOLVED_MODULE_ENTRY_NAME
 from checkov.common.util.data_structures_utils import pickle_deepcopy
 from checkov.common.util.parser_utils import get_module_from_full_path, get_abs_path, \
-    get_tf_definition_key_from_module_dependency, TERRAFORM_NESTED_MODULE_PATH_PREFIX, \
+    TERRAFORM_NESTED_MODULE_PATH_PREFIX, \
     TERRAFORM_NESTED_MODULE_PATH_ENDING, TERRAFORM_NESTED_MODULE_PATH_SEPARATOR_LENGTH, \
     get_module_name
 from checkov.common.util.secrets import omit_secret_value_from_checks, omit_secret_value_from_graph_checks
@@ -261,13 +261,8 @@ class Runner(ImageReferencerMixin[None], BaseRunner[TerraformGraphManager]):
                         root_folder = os.path.split(full_file_path)[0]
                     resource_id = ".".join(entity_context['definition_path'])
                     resource = resource_id
-                    module_dependency = entity.get(CustomAttributes.MODULE_DEPENDENCY)
-                    module_dependency_num = entity.get(CustomAttributes.MODULE_DEPENDENCY_NUM)
                     definition_context_file_path = full_file_path
-                    if module_dependency and module_dependency_num:
-                        resource = entity.get(CustomAttributes.TF_RESOURCE_ADDRESS, resource_id)
-                        definition_context_file_path = get_tf_definition_key_from_module_dependency(full_file_path, module_dependency, module_dependency_num)
-                    elif entity.get(CustomAttributes.TF_RESOURCE_ADDRESS) and entity.get(CustomAttributes.TF_RESOURCE_ADDRESS) != resource_id:
+                    if entity.get(CustomAttributes.TF_RESOURCE_ADDRESS) and entity.get(CustomAttributes.TF_RESOURCE_ADDRESS) != resource_id:
                         # for plan resources
                         resource = entity[CustomAttributes.TF_RESOURCE_ADDRESS]
                     entity_config = self.get_graph_resource_entity_config(entity)
@@ -310,9 +305,6 @@ class Runner(ImageReferencerMixin[None], BaseRunner[TerraformGraphManager]):
     def get_entity_context_and_evaluations(self, entity: dict[str, Any]) -> dict[str, Any] | None:
         block_type = entity[CustomAttributes.BLOCK_TYPE]
         full_file_path = entity[CustomAttributes.FILE_PATH]
-        # TODO Barak delete MODULE_DEPENDENCY, MODULE_DEPENDENCY_NUM
-        if entity.get(CustomAttributes.MODULE_DEPENDENCY):
-            full_file_path = get_tf_definition_key_from_module_dependency(full_file_path, entity[CustomAttributes.MODULE_DEPENDENCY], entity[CustomAttributes.MODULE_DEPENDENCY_NUM])
 
         if strtobool(os.getenv('ENABLE_DEFINITION_KEY', 'False')):
             full_file_path = TFDefinitionKey(file_path=entity.get(CustomAttributes.FILE_PATH), tf_source_modules=entity.get(CustomAttributes.SOURCE_MODULE_OBJECT))
